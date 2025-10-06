@@ -28,7 +28,11 @@ class LightGBM(BaseWithSeed):
         try:
             if isClassifier:
                 num_classes = len(np.unique(train_Y))
-                params["num_class"] = num_classes  # binary 不影響
+                if num_classes > 2:
+                    params["num_class"] = num_classes
+                else:
+                    params.pop("num_class", None)
+
                 model = lgb.LGBMClassifier(**params, random_state=self.seed)
             else:
                 model = lgb.LGBMRegressor(**params, random_state=self.seed)
