@@ -1,15 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold, cross_validate, cross_val_score
-from sklearn.metrics import (
-    classification_report,
-    make_scorer,
-    mean_absolute_error,
-)
+from sklearn.metrics import make_scorer, mean_absolute_error
 import lightgbm as lgb
 import optuna
 import warnings
-from collections import Counter
 
 from ._base import BaseWithSeed
 
@@ -120,27 +115,3 @@ class LightGBM(BaseWithSeed):
         except Exception as e:
             print("optuna_tune has error : " + str(e))
             return None, None
-
-    def cv_error_analysis(model, train, cv_idx):
-
-        all_y_true = []
-        all_y_pred = []
-
-        train_x = train[FEATURE_COLUMNS].fillna(0).to_numpy()
-        train_y = train[["風險分類"]].to_numpy()
-
-        for test_idx in cv_idx:
-            x_val = train_x[test_idx]
-            y_val = train_y[test_idx]
-
-            # 用原模型對 fold 驗證集預測
-            y_pred = model.predict(x_val)
-
-            all_y_true.append(y_val)
-            all_y_pred.append(y_pred)
-
-        # 合併所有 fold
-        y_true_cv = np.concatenate(all_y_true)
-        y_pred_cv = np.concatenate(all_y_pred)
-
-        return classification_report(y_true_cv, y_pred_cv, digits=4)
