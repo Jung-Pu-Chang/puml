@@ -21,12 +21,12 @@ class XAI(BaseWithSeed):
             explainer = shap.TreeExplainer(model)
             shap_values = explainer.shap_values(train_X)
 
-            if isinstance(shap_values, list):
+            if isinstance(shap_values, list):  # 多分類 = list 格式
                 if class_cat is None:
                     print(
                         "[shap_tree] Warning: class_cat not specified, using class 0 by default"
                     )
-                    class_cat = 0
+                    class_cat = 0  # 預設以 0 為解釋目標
                 shap_values = shap_values[class_cat]
 
             baseline = explainer.expected_value
