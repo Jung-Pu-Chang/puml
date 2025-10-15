@@ -70,7 +70,7 @@ class PreProcess(BaseWithSeed):
 
     # ---------- 2. 編碼（One-hot / Label / target） ----------
     def cat_encode(self, df_type, strategy="target", cat_cols=None):
-        df_encoded = df.copy()
+        df_encoded = df_type.copy()
 
         if cat_cols is None:  # 若未指定，自動找 category dtype
             cat_cols = df_encoded.select_dtypes(
@@ -163,7 +163,7 @@ class PreProcess(BaseWithSeed):
         # 注意：預測目標不能放入
         df_train = (
             scaled_df.loc[scaled_df["type"] == "train"]
-            .drop(target_col + ["type"], axis=1)
+            .drop(self.target_col + ["type"], axis=1)
             .reset_index(drop=True)
         )
         n_estimators = max(
@@ -188,7 +188,7 @@ class PreProcess(BaseWithSeed):
 
         print(f"移除訓練資料 {n_removed} 異常值，約 {percentage:.1f}%")
 
-        df_test = fillna_df.loc[fillna_df["type"] == "test"].reset_index(drop=True)
+        df_test = scaled_df.loc[scaled_df["type"] == "test"].reset_index(drop=True)
         df_clean = pd.concat([df_train, df_test], ignore_index=True)
         df_clean["type"] = ["train"] * len(df_train) + ["test"] * len(df_test)
         return df_clean.drop(["anomaly"], axis=1)
