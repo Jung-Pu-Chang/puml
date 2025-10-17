@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import KFold, cross_validate, cross_val_score
+from sklearn.model_selection import (
+    KFold,
+    cross_validate,
+    cross_val_score,
+)
 from sklearn.metrics import make_scorer, mean_absolute_error
 import lightgbm as lgb
 import optuna
@@ -12,6 +16,16 @@ warnings.filterwarnings("ignore")
 
 
 class LightGBM(BaseWithSeed):
+
+    DEFAULT_OPTUNA_PARAMS = {
+        "learning_rate": [0.1, 0.05, 0.01],
+        "max_depth": [3, 5, 7],
+        "subsample": [0.5, 0.7, 0.9],  # Bagging 比例，隨機抽%樣本
+        "n_estimators": [500, 1000, 1500],
+        "boosting_type": ["gbdt", "dart"],
+        # 過適、速度慢、goss 大樣本使用，不能bagging
+        "bagging_freq": [0, 1, 5],  # bagging 每n次使用一次，0不使用
+    }
 
     def build_model(
         self, train_X, train_Y, params, scoring, fold_time, isClassifier=True
@@ -50,7 +64,9 @@ class LightGBM(BaseWithSeed):
             print("build_model has error : " + str(e))
             return None, None, None
 
-    def optuna_tune(self, train_X, train_Y, n_trials, loss, isClassifier=True):
+    def optuna_tune(
+        self, train_X, train_Y, n_trials, loss, isClassifier=True, param_space=None
+    ):
         """
         調參，輸出最佳模型 + 參數結果，np.array計算
         metric 預設 = objective，評估指標，不影響模型訓練
@@ -58,23 +74,18 @@ class LightGBM(BaseWithSeed):
         train_X = train_X.to_numpy()
         train_Y = train_Y.to_numpy()
 
+        current_param_space = (
+            param_space if param_space is not None else self.DEFAULT_OPTUNA_PARAMS
+        )
+
         def objective(trial):
             kf = KFold(n_splits=5, shuffle=True, random_state=self.seed)
             params_tuned = {
-                "learning_rate": trial.suggest_categorical(
-                    "learning_rate", [0.1, 0.05, 0.01]
-                ),
-                "max_depth": trial.suggest_categorical("max_depth", [3, 5, 7]),
-                "subsample": trial.suggest_categorical("subsample", [0.1, 0.5, 0.7]),
-                "n_estimators": trial.suggest_categorical(
-                    "n_estimators", [1000, 1500, 2000]
-                ),
-                "boosting_type": trial.suggest_categorical(
-                    "boosting_type", ["gbdt", "dart"]
-                ),
-                "random_state": self.seed,
-                "verbose": -1,
+                key: trial.suggest_categorical(key, values)
+                for key, values in current_param_space.items()
             }
+            params_tuned.update({"verbose": -1, "random_state": self.seed})
+
             if isClassifier:
                 model = lgb.LGBMClassifier(**params_tuned)
                 score = cross_val_score(
