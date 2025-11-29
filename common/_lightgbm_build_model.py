@@ -138,4 +138,4 @@ class LightGBM(BaseWithSeed):
 
         except Exception as e:
             print(f"optuna_tune has error: {e}")
-            return None
+            return None, None
