@@ -7,6 +7,8 @@ class BaseWithSeed:
 
     def __init__(self, seed: int = 17):
         self.seed = seed
+        if seed is None:
+            seed = 17
         np.random.seed(self.seed)
         random.seed(self.seed)
         print(f"[{self.__class__.__name__}] All seeds set to {self.seed}")
