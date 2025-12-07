@@ -26,36 +26,22 @@ class DropHighNaNFeatures(BaseEstimator, TransformerMixin):
 
 
 # --- IsolationForest 異常值移除 (僅在訓練時作用) ---
-class IsolationForestCleaner(BaseEstimator, BaseWithSeed):
-    """
-    相容於 imblearn pipeline 的採樣器 (Sampler)。
-    fit_resample 只在訓練時執行，transform 在推論時不執行 (保留原樣)。
-    """
-
-    def __init__(self, contamination="auto", seed: int = 17):
+class IsolationForestCleaner(BaseEstimator, TransformerMixin, BaseWithSeed):
+    def __init__(self, contamination="auto", seed=17):
         super().__init__(seed)
         self.contamination = contamination
-        self.random_state = self.seed
-        self.model_ = None
 
-    def fit_resample(self, X, y):
-        # 1. 訓練 IF 模型
+    def fit(self, X, y=None):
         self.model_ = IsolationForest(
-            contamination=self.contamination, random_state=self.random_state, n_jobs=-1
+            contamination=self.contamination, random_state=self.seed, n_jobs=-1
         )
-        preds = self.model_.fit_predict(X)
-
-        # 2. 篩選非異常值 (preds == 1)
-        mask = preds != -1
-        n_removed = (~mask).sum()
-
-        if n_removed > 0:
-            print(
-                f"🗑️ IsolationForest: 移除 {n_removed} 筆異常樣本 (佔 {n_removed/len(X):.1%})"
-            )
-
-        return X[mask], y[mask]
-
-    # 為了相容一般 fit
-    def fit(self, X, y):
+        self.model_.fit(X)
         return self
+
+    def transform(self, X):
+        preds = self.model_.predict(X)
+        # 1 表示正常，-1 表示異常
+        X_out = X.copy()
+        X_out["__is_outlier"] = (preds == -1).astype(int)
+        mask = preds == 1
+        return X_out.loc[mask].drop(columns="__is_outlier")
