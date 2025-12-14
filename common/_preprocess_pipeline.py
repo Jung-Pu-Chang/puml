@@ -3,7 +3,12 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 from imblearn.pipeline import Pipeline as ImbPipeline
 
-from feature_engine.encoding import MeanEncoder, OneHotEncoder, RareLabelEncoder
+from feature_engine.encoding import (
+    MeanEncoder,
+    OneHotEncoder,
+    RareLabelEncoder,
+    OrdinalEncoder,
+)
 from feature_engine.imputation import AddMissingIndicator, CategoricalImputer
 from feature_engine.wrappers import SklearnTransformerWrapper
 
@@ -11,6 +16,7 @@ from ._base import BaseWithSeed
 from ._drop_useless_data import DropHighNaNFeatures, IsolationForestCleaner
 
 
+# DropConstantFeatures、共線性未新增
 class PreprocessPipeline(BaseWithSeed):
     def __init__(
         self,
@@ -63,7 +69,7 @@ class PreprocessPipeline(BaseWithSeed):
                     tol=self.cat_combine_rate, n_categories=10, replace_with="Other"
                 ),
             )
-        )  # 類別數 > 10 啟動，把樣本數 < 2% 的合併成 Other
+        )  # 類別數 >= 10 啟動，把樣本數 < 2% 的合併成 Other
 
         if self.encoding_strategy == "target":
             # smoothing=10: 樣本少於10的類別，其編碼值會被拉向總平均，避免過擬合
@@ -76,7 +82,6 @@ class PreprocessPipeline(BaseWithSeed):
             # arbitrary 以出現順序編碼，ordered 以 y 單調增
 
         # Step D: 常態化 (PowerTransformer)
-        # 此時所有欄位(包含編碼後的類別)都是數值，Wrapper 會自動處理全部
         steps.append(
             (
                 "D_norm_transform",
@@ -89,12 +94,14 @@ class PreprocessPipeline(BaseWithSeed):
         # Step E: 縮放
         steps.append(("E_scaler", SklearnTransformerWrapper(RobustScaler())))
 
-        # Step F: 移除異常值 (這會改變樣本數，必須用 ImbPipeline)
+        # Step F: 移除異常值
         steps.append(
             (
                 "F_outlier_remover",
                 IsolationForestCleaner(
-                    contamination=self.outlier_contamination, seed=self.seed
+                    contamination=self.outlier_contamination,
+                    seed=self.seed,
+                    indicator_suffix="_na",
                 ),
             )
         )
