@@ -27,21 +27,30 @@ class DropHighNaNFeatures(BaseEstimator, TransformerMixin):
 
 # --- IsolationForest 異常值移除 (僅在訓練時作用) ---
 class IsolationForestCleaner(BaseEstimator, TransformerMixin, BaseWithSeed):
-    def __init__(self, contamination="auto", seed=17):
+    def __init__(
+        self,
+        contamination="auto",
+        seed=17,
+        indicator_suffix="_na",  # Missing Indicator 命名規則
+    ):
         super().__init__(seed)
         self.contamination = contamination
+        self.indicator_suffix = indicator_suffix
 
     def fit(self, X, y=None):
+        self.if_features_ = [
+            c for c in X.columns if not c.endswith(self.indicator_suffix)
+        ]
+
         self.model_ = IsolationForest(
-            contamination=self.contamination, random_state=self.seed, n_jobs=-1
+            contamination=self.contamination,
+            random_state=self.seed,
+            n_jobs=-1,
         )
-        self.model_.fit(X)
+        self.model_.fit(X[self.if_features_])
         return self
 
     def transform(self, X):
-        preds = self.model_.predict(X)
-        # 1 表示正常，-1 表示異常
-        X_out = X.copy()
-        X_out["__is_outlier"] = (preds == -1).astype(int)
+        preds = self.model_.predict(X[self.if_features_])
         mask = preds == 1
-        return X_out.loc[mask].drop(columns="__is_outlier")
+        return X.loc[mask]
