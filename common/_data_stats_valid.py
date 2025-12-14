@@ -5,6 +5,7 @@ import numpy as np
 
 class DataValidator:
     SIGNIFICANCE_LEVEL = 0.05
+    AD_CRITICAL_INDEX = 2
 
     @staticmethod
     def check_drift(X_train: pd.DataFrame, X_test: pd.DataFrame) -> pd.DataFrame:
@@ -68,21 +69,17 @@ class DataValidator:
     @staticmethod
     def check_normality_and_correlation(df: pd.DataFrame) -> pd.DataFrame:
         """
-        執行統計特徵分析：
-        - 常態性：AD Test (Anderson-Darling Test)
-        - 相關性：Pearson 連續型、
+        - 常態性：AD Test (Anderson-Darling Test)，只看連續型
+        - 線性相關性：Pearson 連續型、Sperman 排序型
         """
         results = []
         num_cols = df.select_dtypes(include=["number"]).columns
 
         print("\n📊 正在分析統計特徵 (Normality & Correlation)...")
 
-        # *** 效率優化：只計算一次相關矩陣 ***
-        # 使用 .fillna(0) 處理可能產生的 NaN (例如常數欄位)
         try:
             corr_matrix = df[num_cols].corr().abs().fillna(0)
         except ValueError:
-            # 如果欄位太少，無法計算相關性，則跳過
             corr_matrix = pd.DataFrame(0, index=num_cols, columns=num_cols)
 
         for col in num_cols:
@@ -106,7 +103,6 @@ class DataValidator:
             # 2. Correlation (Average absolute correlation with other features)
             avg_corr = 0
             try:
-                # 從已計算的矩陣中取出該欄位的平均絕對相關性
                 avg_corr = corr_matrix[col].mean()
             except:
                 pass
