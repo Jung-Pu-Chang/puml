@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Type, Tuple, Dict, Any
 from imblearn.over_sampling import SMOTE, ADASYN
+from imblearn.combine import SMOTETomek  # 類別邊界模糊用
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.base import BaseSampler
 
@@ -14,6 +15,7 @@ class Balancer(BaseWithSeed):
         self._samplers: Dict[str, Type[BaseSampler]] = {
             "smote": SMOTE,
             "adasyn": ADASYN,
+            "smote_tomek": SMOTETomek,
             "under_sample": RandomUnderSampler,
         }  # 可擴充：未來新增演算法
 
