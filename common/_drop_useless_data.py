@@ -50,7 +50,18 @@ class IsolationForestCleaner(BaseEstimator, TransformerMixin, BaseWithSeed):
         self.model_.fit(X[self.if_features_])
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         preds = self.model_.predict(X[self.if_features_])
         mask = preds == 1
-        return X.loc[mask]
+
+        X_clean = X.loc[mask]
+
+        if y is None:
+            return X_clean
+
+        if hasattr(y, "loc"):
+            y_clean = y.loc[mask]
+        else:
+            y_clean = y[mask]
+
+        return X_clean, y_clean
