@@ -167,4 +167,7 @@ class LightGBM(BaseWithSeed):
 
         except Exception as e:
             print(f"optuna_tune has error: {e}")
-            return None
+            # 回傳預設參數
+            default_params = self.DEFAULT_OPTUNA_PARAMS.copy()
+            default_params.update({"objective": loss, "verbose": -1})
+            return default_params
