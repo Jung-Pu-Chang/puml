@@ -127,8 +127,11 @@ class LightGBM(BaseWithSeed):
                     )
                 else:
                     # 二元分類：scale_pos_weight 正(1)是負(0)的幾倍
+                    # 一樣找 1 ~ 10 倍
                     s_weight = trial.suggest_float("scale_pos_weight", 1.0, 10.0)
-                    model = lgb.LGBMClassifier(**params_tuned)
+                    model = lgb.LGBMClassifier(
+                        **params_tuned, scale_pos_weight=s_weight
+                    )
 
                 score = cross_val_score(
                     model, train_X, train_Y, cv=kf, scoring="f1_macro"
@@ -155,19 +158,20 @@ class LightGBM(BaseWithSeed):
             best_params["verbose"] = -1
 
             if isClassifier:
-                weights = {0: 1.0}
-                for c in np.unique(train_Y):
-                    if c != 0:
-                        key = f"weight_class_{c}"
-                        weights[c] = best_params.pop(key)
-                best_params["class_weight"] = weights
-                best_params["num_class"] = len(np.unique(train_Y))
-                # scale_pos_weight 會直接在 best_params 中，不需額外處理
+                unique_classes = np.unique(train_Y)
+                if len(unique_classes) > 2:
+                    # 只有多分類才需要處理 weight_class_x
+                    weights = {0: 1.0}
+                    for c in unique_classes:
+                        if c != 0:
+                            key = f"weight_class_{c}"
+                            weights[c] = best_params.pop(key)
+                    best_params["class_weight"] = weights
+                    best_params["num_class"] = len(unique_classes)
+                else:
+                    best_params["num_class"] = None
+
             return best_params
 
         except Exception as e:
             print(f"optuna_tune has error: {e}")
-            # 回傳預設參數
-            default_params = self.DEFAULT_OPTUNA_PARAMS.copy()
-            default_params.update({"objective": loss, "verbose": -1})
-            return default_params
