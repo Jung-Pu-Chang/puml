@@ -115,10 +115,10 @@ class LightGBM(BaseWithSeed):
                 if len(unique_classes) > 2:
                     params_tuned["num_class"] = len(unique_classes)
                     # 不平衡處理：動態搜權重 = 0固定為1，剩餘找 1.0~10.0 倍
-                    class_weight = {0: 1.0}
+                    class_weight = {int(0): 1.0}
                     for c in unique_classes:
                         if c != 0:
-                            class_weight[c] = trial.suggest_float(
+                            class_weight[int(c)] = trial.suggest_float(
                                 f"weight_class_{c}", 1.0, 10.0
                             )
 
