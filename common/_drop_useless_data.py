@@ -26,7 +26,7 @@ class DropHighNaNFeatures(BaseEstimator, TransformerMixin):
 
 
 # --- IsolationForest 異常值移除 (僅在訓練時作用) ---
-class IsolationForestCleaner(BaseEstimator, TransformerMixin, BaseWithSeed):
+class IsolationForestCleaner(BaseWithSeed, BaseEstimator, TransformerMixin):
     def __init__(
         self,
         contamination="auto",
